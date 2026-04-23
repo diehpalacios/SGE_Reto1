@@ -1,0 +1,21 @@
+{% extends 'agenda/base.html' %}
+
+{% block title %}Confirmar Borrado - Egibide Booking{% endblock %}
+
+{% block content %}
+<div class="form-container form-container-small text-center">
+    <h2 class="text-danger">⚠️ Confirmar Borrado</h2>
+
+    <p>¿Estás seguro de que deseas dar de baja este registro del sistema?</p>
+    <p><strong>{{ tipo }}:</strong> {{ objeto }}</p>
+    <p><em>Esta acción es irreversible.</em></p>
+
+    <form method="POST" style="margin-top: 30px;">
+        {% csrf_token %}
+        <div class="acciones-form flex-center">
+            <a href="{% url url_cancelar %}" class="btn btn-small">Cancelar y Volver</a>
+            <button type="submit" class="btn btn-danger-solid">Sí, Eliminar Definitivamente</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

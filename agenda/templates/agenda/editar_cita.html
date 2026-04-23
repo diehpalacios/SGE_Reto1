@@ -1,0 +1,36 @@
+{% extends 'agenda/base.html' %}
+
+{% block title %}Editar Cita #{{ cita.id }} - Egibide Booking{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>✏️ Detalles y Edición (Cita #{{ cita.id }})</h2>
+
+    <form method="POST" class="formulario-estilizado">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        <div class="grid-form">
+            {% for field in form %}
+                <div class="form-group {% if field.name == 'observaciones' %}full-width{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <span class="error-text">{{ field.errors|striptags }}</span>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="acciones-form">
+            <a href="{% url 'dashboard_citas' %}" class="btn btn-small">Volver</a>
+            <button type="submit" class="btn btn-primary">Actualizar Cita</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
