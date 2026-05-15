@@ -59,7 +59,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -115,7 +115,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'agenda', 'static'),
+]
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -152,3 +157,16 @@ CSRF_TRUSTED_ORIGINS = [
     "https://*.ngrok.io",  # Si usas ngrok frecuentemente
     "https://*.ngrok-free.app",  # Para las nuevas versiones de ngrok
 ]
+
+# --- CONFIGURACIÓN DE SEGURIDAD DE LA API ---
+REST_FRAMEWORK = {
+    # 1. ¿Quién tiene permiso para entrar? Solo usuarios autenticados
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    # 2. ¿Cómo verificamos su identidad? Con usuario y contraseña (Basic) o Sesión
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ]
+}

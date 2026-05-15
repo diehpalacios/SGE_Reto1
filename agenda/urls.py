@@ -1,7 +1,7 @@
 # agenda/urls.py
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ClienteViewSet, CitaViewSet, ServicioViewSet,ProfesionalViewSet,DisponibilidadViewSet
+from .views import ClienteViewSet, CitaViewSet, ServicioViewSet, ProfesionalViewSet, DisponibilidadViewSet
 
 router = DefaultRouter()
 router.register(r'servicios', ServicioViewSet)
@@ -11,5 +11,5 @@ router.register(r'disponibilidad', DisponibilidadViewSet)
 router.register(r'citas', CitaViewSet)
 
 urlpatterns = [
-    path('api/', include(router.urls)), # Todas las rutas empezarán por /api/
+    path('', include(router.urls)),
 ]
