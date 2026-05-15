@@ -11,34 +11,30 @@
       <h3>{{ editando ? 'Editar Profesional' : 'Registrar Nuevo Profesional' }}</h3>
       <form @submit.prevent="guardarProfesional" class="grid-form">
 
-        <div class="form-group">
-          <label>DNI:</label>
-          <input type="text" v-model="formularioProfesional.dni" required maxlength="20">
-        </div>
+        <div class="form-group"><label>DNI:</label><input type="text" v-model="formularioProfesional.dni" required maxlength="20"></div>
+        <div class="form-group"><label>Nombre:</label><input type="text" v-model="formularioProfesional.nombre" required></div>
+        <div class="form-group"><label>Apellidos:</label><input type="text" v-model="formularioProfesional.apellidos" required></div>
+        <div class="form-group"><label>Email:</label><input type="email" v-model="formularioProfesional.email" required></div>
+        <div class="form-group"><label>Teléfono:</label><input type="text" v-model="formularioProfesional.telefono" required maxlength="15"></div>
+        <div class="form-group"><label>Especialidad:</label><input type="text" v-model="formularioProfesional.especialidad" required placeholder="Ej: Pediatría"></div>
 
         <div class="form-group">
-          <label>Nombre:</label>
-          <input type="text" v-model="formularioProfesional.nombre" required>
+          <label>Estado:</label>
+          <select v-model="formularioProfesional.estado" required>
+            <option value="ACTIVO">Activo</option>
+            <option value="INACTIVO">Inactivo</option>
+            <option value="BAJA">De Baja</option>
+          </select>
         </div>
 
-        <div class="form-group">
-          <label>Apellidos:</label>
-          <input type="text" v-model="formularioProfesional.apellidos" required>
-        </div>
-
-        <div class="form-group">
-          <label>Email:</label>
-          <input type="email" v-model="formularioProfesional.email" required>
-        </div>
-
-        <div class="form-group">
-          <label>Teléfono:</label>
-          <input type="text" v-model="formularioProfesional.telefono" required maxlength="15">
-        </div>
-
-        <div class="form-group">
-          <label>Especialidad:</label>
-          <input type="text" v-model="formularioProfesional.especialidad" required placeholder="Ej: Fisioterapia">
+        <div class="form-group full-width">
+          <label>Servicios que presta (Mantén pulsado Ctrl/Cmd para seleccionar varios):</label>
+          <select v-model="formularioProfesional.servicios" multiple class="select-multiple">
+            <option v-for="s in listaServicios" :key="s.id" :value="s.id">
+              {{ s.nombre }}
+            </option>
+          </select>
+          <small class="hint">Debes seleccionar al menos un servicio.</small>
         </div>
 
         <div class="form-group full-width">
@@ -58,6 +54,7 @@
           <th>Nombre Completo</th>
           <th>Especialidad</th>
           <th>Teléfono</th>
+          <th>Estado</th>
           <th>Acciones</th>
         </tr>
       </thead>
@@ -67,13 +64,14 @@
           <td><strong>{{ profesional.apellidos }}, {{ profesional.nombre }}</strong></td>
           <td><span class="badge badge-info">{{ profesional.especialidad }}</span></td>
           <td>{{ profesional.telefono }}</td>
+          <td><strong>{{ profesional.estado }}</strong></td>
           <td>
             <button @click="cargarDatosParaEditar(profesional)" class="btn-warning">Editar</button>
             <button @click="borrarProfesional(profesional.id)" class="btn-danger">Borrar</button>
           </td>
         </tr>
         <tr v-if="profesionales.length === 0">
-          <td colspan="5" class="text-center">No hay profesionales registrados.</td>
+          <td colspan="6" class="text-center">No hay profesionales registrados.</td>
         </tr>
       </tbody>
     </table>
@@ -85,6 +83,7 @@ import { ref, onMounted } from 'vue';
 import api from '../api.js';
 
 const profesionales = ref([]);
+const listaServicios = ref([]); // Lista de servicios desde el backend
 const cargando = ref(true);
 const mostrarFormulario = ref(false);
 const editando = ref(false);
@@ -96,19 +95,26 @@ const formularioProfesional = ref({
   apellidos: '',
   email: '',
   telefono: '',
-  especialidad: ''
+  especialidad: '',
+  estado: 'ACTIVO',
+  servicios: [] // Añadimos el array vacío para enviar los servicios
 });
 
 onMounted(async () => {
-  await cargarProfesionales();
+  await cargarDatosBase();
 });
 
-const cargarProfesionales = async () => {
+const cargarDatosBase = async () => {
   try {
-    const respuesta = await api.get('profesionales/');
-    profesionales.value = respuesta.data;
+    // Cargamos tanto los profesionales como los servicios disponibles
+    const [resProfesionales, resServicios] = await Promise.all([
+      api.get('profesionales/'),
+      api.get('servicios/')
+    ]);
+    profesionales.value = resProfesionales.data;
+    listaServicios.value = resServicios.data;
   } catch (error) {
-    console.error("Error al cargar profesionales:", error);
+    console.error("Error al cargar datos:", error);
   } finally {
     cargando.value = false;
   }
@@ -121,7 +127,7 @@ const toggleFormulario = () => {
 
 const limpiarFormulario = () => {
   editando.value = false;
-  formularioProfesional.value = { id: null, dni: '', nombre: '', apellidos: '', email: '', telefono: '', especialidad: '' };
+  formularioProfesional.value = { id: null, dni: '', nombre: '', apellidos: '', email: '', telefono: '', especialidad: '', estado: 'ACTIVO', servicios: [] };
 };
 
 const cargarDatosParaEditar = (profesional) => {
@@ -139,10 +145,18 @@ const guardarProfesional = async () => {
     }
     mostrarFormulario.value = false;
     limpiarFormulario();
-    await cargarProfesionales();
+    // Recargamos datos para ver el nuevo profesional
+    await cargarDatosBase();
   } catch (error) {
-    console.error("Error al guardar:", error);
-    alert("Error al guardar. Revisa la consola.");
+    if (error.response && error.response.data) {
+      console.error("Errores de Django:", error.response.data);
+      const mensajes = Object.entries(error.response.data)
+        .map(([campo, errores]) => `${campo.toUpperCase()}: ${errores.join(', ')}`)
+        .join('\n');
+      alert("⚠️ Error al guardar:\n" + mensajes);
+    } else {
+      alert("Error de conexión. Revisa la consola.");
+    }
   }
 };
 
@@ -150,7 +164,7 @@ const borrarProfesional = async (id) => {
   if (confirm("¿Borrar este profesional? Se borrarán sus citas asociadas.")) {
     try {
       await api.delete(`profesionales/${id}/`);
-      await cargarProfesionales();
+      await cargarDatosBase();
     } catch (error) {
       console.error("Error al borrar:", error);
     }
@@ -159,7 +173,6 @@ const borrarProfesional = async (id) => {
 </script>
 
 <style scoped>
-/* Copiamos los mismos estilos base que en Clientes */
 .container { max-width: 1000px; margin: 20px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .btn-primary { background-color: #0056b3; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
@@ -171,7 +184,9 @@ const borrarProfesional = async (id) => {
 .grid-form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;}
 .form-group { display: flex; flex-direction: column; }
 .form-group label { font-size: 0.9rem; font-weight: bold; margin-bottom: 5px; color: #333;}
-.form-group input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+.form-group input, .form-group select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+.select-multiple { height: 100px; }
+.hint { color: #666; font-size: 0.8em; margin-top: 4px; }
 .full-width { grid-column: 1 / -1; margin-top: 10px;}
 .tabla-datos { width: 100%; border-collapse: collapse; margin-top: 10px; }
 .tabla-datos th, .tabla-datos td { border-bottom: 1px solid #eee; padding: 12px; text-align: left; }

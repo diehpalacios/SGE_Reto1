@@ -171,7 +171,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onActivated } from 'vue';
 import api from '../api.js';
 
 const citas = ref([]);
@@ -197,6 +197,10 @@ const formularioCita = ref({
 });
 
 onMounted(async () => {
+  await cargarDatos();
+});
+
+onActivated(async () => {
   await cargarDatos();
 });
 
@@ -232,16 +236,30 @@ const obtenerCitasEnSlot = (hora) => {
 };
 
 const diasSemana = computed(() => {
-  const baseDate = filtroFecha.value ? new Date(filtroFecha.value) : new Date();
+  // 1. Leemos la fecha evitando problemas de zona horaria
+  const fechaBase = filtroFecha.value ? filtroFecha.value : hoy;
+  const [yearStr, monthStr, dayStr] = fechaBase.split('-');
+  const baseDate = new Date(yearStr, monthStr - 1, dayStr); // Creamos la fecha a las 00:00 locales
+
+  // 2. Retrocedemos al Lunes de esa semana de forma segura
   const day = baseDate.getDay() || 7;
-  if (day !== 1) baseDate.setHours(-24 * (day - 1));
+  if (day !== 1) {
+    baseDate.setDate(baseDate.getDate() - (day - 1));
+  }
 
   const week = [];
+  // 3. Generamos los 5 días (Lunes a Viernes)
   for(let i=0; i<5; i++) {
      const d = new Date(baseDate);
      d.setDate(d.getDate() + i);
+
+     // Construimos el YYYY-MM-DD manualmente en HORA LOCAL (Sin usar toISOString)
+     const yyyy = d.getFullYear();
+     const mm = String(d.getMonth() + 1).padStart(2, '0');
+     const dd = String(d.getDate()).padStart(2, '0');
+
      week.push({
-        fechaISO: d.toISOString().split('T')[0],
+        fechaISO: `${yyyy}-${mm}-${dd}`,
         nombreDia: d.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase(),
         diaMes: d.getDate()
      });
